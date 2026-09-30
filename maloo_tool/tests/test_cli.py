@@ -496,6 +496,78 @@ class TestReview:
         assert env["data"]["session_count"] == 1
         assert mock_client.find_sessions_by_commit.call_count == 2
 
+    def _mixed_sessions(self):
+        return [
+            {
+                "id": SID_1, "test_group": "all-passed",
+                "test_sets_passed_count": 3, "test_sets_failed_count": 0,
+                "test_sets_count": 3,
+            },
+            {
+                "id": SID_2, "test_group": "all-failed",
+                "test_sets_passed_count": 0, "test_sets_failed_count": 2,
+                "test_sets_count": 2,
+            },
+            {
+                "id": SID_3, "test_group": "mixed",
+                "test_sets_passed_count": 1, "test_sets_failed_count": 1,
+                "test_sets_count": 2,
+            },
+        ]
+
+    def test_review_filters_passed_only(self, runner, mock_client):
+        mock_client.find_sessions_by_commit.return_value = self._mixed_sessions()
+        result = runner.invoke(
+            main,
+            ["--envelope", "review", "54321", "--commit", "a" * 40, "--passed"],
+        )
+        env = _parse_output(result)
+        groups = {s["test_group"] for s in env["data"]["sessions"]}
+        assert groups == {"all-passed", "mixed"}
+
+    def test_review_filters_failed_only(self, runner, mock_client):
+        mock_client.find_sessions_by_commit.return_value = self._mixed_sessions()
+        result = runner.invoke(
+            main,
+            ["--envelope", "review", "54321", "--commit", "a" * 40, "--failed"],
+        )
+        env = _parse_output(result)
+        groups = {s["test_group"] for s in env["data"]["sessions"]}
+        assert groups == {"all-failed", "mixed"}
+
+    def test_review_filters_passed_and_failed_requires_both(
+        self, runner, mock_client
+    ):
+        """--passed and --failed together keep only mixed-result sessions."""
+        mock_client.find_sessions_by_commit.return_value = self._mixed_sessions()
+        result = runner.invoke(
+            main,
+            [
+                "--envelope", "review", "54321", "--commit", "a" * 40,
+                "--passed", "--failed",
+            ],
+        )
+        env = _parse_output(result)
+        groups = {s["test_group"] for s in env["data"]["sessions"]}
+        assert groups == {"mixed"}
+
+    def test_review_filter_with_no_matches(self, runner, mock_client):
+        mock_client.find_sessions_by_commit.return_value = [
+            {
+                "id": SID_1, "test_group": "all-passed",
+                "test_sets_passed_count": 3, "test_sets_failed_count": 0,
+                "test_sets_count": 3,
+            },
+        ]
+        result = runner.invoke(
+            main,
+            ["--envelope", "review", "54321", "--commit", "a" * 40, "--failed"],
+        )
+        env = _parse_output(result)
+        assert env["ok"] is True
+        assert env["data"]["sessions"] == []
+
+
 # -- bugs command --
 
 

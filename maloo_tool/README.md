@@ -54,6 +54,8 @@ maloo review 54225
 maloo review 54225 --patch 3         # a specific patchset
 maloo review 54225 --all-patchsets   # every patchset ever uploaded (slow)
 maloo review 54225 --commit <sha>    # skip auto-resolution, query an exact revision
+maloo review 54225 --failed          # only sessions with a failed test set
+maloo review 54225 --passed          # only sessions with a passed test set
 
 # List recent sessions
 maloo sessions --branch lustre-master
@@ -133,7 +135,7 @@ follow-up commands.)
 | Command | Description |
 |---------|-------------|
 | `maloo sessions` | List recent sessions (filter by `--branch`, `--host`, `--failed`) |
-| `maloo review <change>` | Test sessions for a Gerrit change number (current patchset by default; `--patch N`, `--all-patchsets`, or `--commit <sha>` to change scope) |
+| `maloo review <change>` | Test sessions for a Gerrit change number (current patchset by default; `--patch N`, `--all-patchsets`, or `--commit <sha>` to change scope; `--passed`/`--failed` to filter results) |
 | `maloo top-failures <branch>` | Most common failing tests on a branch |
 | `maloo test-history <test>` | Pass/fail history for a specific subtest |
 | `maloo queue` | Test queue status; requires at least one filter: `--review`, `--build`, `--branch`, or `--status` |
