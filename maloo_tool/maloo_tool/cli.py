@@ -502,10 +502,14 @@ def subtests(test_set_id: str, status: str | None, show_all: bool, pretty: bool)
 @click.option("--all-patchsets", is_flag=True,
               help="Fetch sessions for every patchset instead of just one "
                    "(can be very slow on heavily-retested reviews)")
+@click.option("--passed", "only_passed", is_flag=True,
+              help="Only include sessions with at least one passed test set")
+@click.option("--failed", "only_failed", is_flag=True,
+              help="Only include sessions with at least one failed test set")
 @click.option("--pretty", is_flag=True, help="Pretty-print JSON")
 def review(
     review_id: int, patch: int | None, commit_id: str | None,
-    all_patchsets: bool, pretty: bool,
+    all_patchsets: bool, only_passed: bool, only_failed: bool, pretty: bool,
 ) -> None:
     """Find test sessions for a Gerrit review.
 
@@ -519,6 +523,10 @@ def review(
     Use --patch to look at a specific patchset, or --all-patchsets to
     fetch sessions across every patchset ever uploaded (slow for
     reviews with many patchsets/retests).
+
+    --passed and --failed filter the returned sessions by whether
+    they had any passed/failed test sets; passing both requires a
+    session to have some of each (a mixed result).
     """
     client = _make_client()
 
@@ -573,6 +581,15 @@ def review(
     except Exception as exc:
         _error(ErrorCode.API_ERROR, str(exc), "review", pretty)
         return
+
+    if only_passed:
+        sessions = [
+            s for s in sessions if s.get("test_sets_passed_count", 0) > 0
+        ]
+    if only_failed:
+        sessions = [
+            s for s in sessions if s.get("test_sets_failed_count", 0) > 0
+        ]
 
     if not sessions:
         env = success_response(
